@@ -25,22 +25,16 @@ abstract class BaseDFAgent internal constructor(
         }
     }
 
-    private val _children = mutableMapOf<String, Agent>()
+    private val children = mutableMapOf<String, Agent>()
 
     override val identifier: String
-        get() = if (parent is AgentManagementSystem) {
-            name
-        } else {
-            "${parent.name}@$name"
-        }
+        get() = "${parent.identifier}@$name"
 
-    override val children: Map<String, Agent> = _children
-
-    override fun agent(agent: Agent) {
-        _children[agent.name] = agent
+    override suspend fun agent(agent: Agent) {
+        children[agent.name] = agent
     }
 
-    override fun agent(name: String, capicity: Int, lifecycle: Duration, behaviour: Behaviour) {
+    override suspend fun agent(name: String, capicity: Int, lifecycle: Duration, behaviour: Behaviour) {
         val newAgent = BaseAgent.AgentImpl(name, behaviour, coroutineContext + Job(), capacity, this)
         agent(newAgent)
     }
@@ -64,13 +58,14 @@ abstract class BaseDFAgent internal constructor(
 
     override suspend fun send(element: Message) = agent.send(element)
 
-    override fun df(
+    override suspend fun df(
         name: String,
         mts: MessageTransportService?,
         capicity: Int,
         init: suspend DirectoryFacilitator.() -> Unit
     ) {
-        val newDf = BaseDFAgent.DFAgentImpl(name, coroutineContext, capacity, this)
+        val newDf = BaseDFAgent.DFAgentImpl(name, coroutineContext + Job(), capacity, this)
+        newDf.init()
         agent(newDf)
     }
 
@@ -80,20 +75,29 @@ abstract class BaseDFAgent internal constructor(
             val currentDFIndex = receiverPath.indexOfFirst { it == name }
             when (currentDFIndex) {
                 receiverPath.lastIndex -> with(message) {
-                    children.values.forEach { it.send(Message(senderId, receiverId, data, code, timestamp)) }
+                    children.values.forEach { it.send(Message(senderId, it.identifier, data, code, timestamp)) }
                 }
                 receiverPath.lastIndex - 1 -> {
-                    val agent = children[receiverPath.last()]
-                    agent?.send(message) ?: throw UnrecogniedException()
+                    val child = children[receiverPath.last()]
+                    child?.sendMessage(message) ?: throw UnrecogniedException()
                 }
                 -1 -> {
                     onPathUnresolved(message)
                 }
-                else -> children[receiverPath[currentDFIndex + 1]]?.send(message) ?: throw UnrecogniedException()
+                else -> children[receiverPath[currentDFIndex + 1]]?.sendMessage(message) ?: throw UnrecogniedException()
             }
         }
 
     override suspend fun onPathUnresolved(message: Message) = parent.send(message)
+
+    override fun get(agentId: String): Agent = children[agentId]!!
+
+    private fun Agent.sendMessage(message: Message) {
+        val result = offer(message)
+        if (!result) {
+            println("Agent `$identifier` is blocked")
+        }
+    }
 
     internal class DFAgentImpl(
         name: String,

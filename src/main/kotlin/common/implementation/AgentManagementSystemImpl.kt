@@ -20,20 +20,19 @@ class AgentManagementSystemImpl(
 ) : AgentManagementSystem {
 
     private val subscription = messageTransportService.openSubscription()
-    private val innerDFAgent = BaseDFAgent.DFAgentImpl(name, coroutineContext, capacity, this)
+    private val innerDFAgent = BaseDFAgent.DFAgentImpl("MAIN", coroutineContext, capacity, this)
 
     init {
         launch(Dispatchers.IO) { subscription.consumeEach { innerDFAgent.send(it) } }
     }
 
-    override val children: Map<String, Agent>
-        get() = innerDFAgent.children
+    override fun get(agentId: String): Agent = innerDFAgent[agentId]
 
     override suspend fun onPathUnresolved(message: Message) {
         println("Try send request to network")
     }
 
-    override fun df(
+    override suspend fun df(
         name: String,
         mts: MessageTransportService?,
         capicity: Int,
@@ -42,11 +41,11 @@ class AgentManagementSystemImpl(
         innerDFAgent.df(name, mts, capicity, init)
     }
 
-    override fun agent(agent: Agent) {
+    override suspend fun agent(agent: Agent) {
         innerDFAgent.agent(agent)
     }
 
-    override fun agent(name: String, capicity: Int, lifecycle: Duration, behaviour: Behaviour) {
+    override suspend fun agent(name: String, capicity: Int, lifecycle: Duration, behaviour: Behaviour) {
         innerDFAgent.agent(name, capicity, lifecycle, behaviour)
     }
 
@@ -76,5 +75,9 @@ class AgentManagementSystemImpl(
     override fun offer(element: Message): Boolean = innerDFAgent.offer(element)
 
     override suspend fun send(element: Message) = innerDFAgent.send(element)
+
+    suspend fun register() {
+        send(Message(innerDFAgent.identifier, innerDFAgent.identifier, code = AgentPlatform.CODE_REGISTRATION))
+    }
 
 }

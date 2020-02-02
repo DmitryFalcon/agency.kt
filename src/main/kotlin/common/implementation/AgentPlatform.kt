@@ -10,7 +10,7 @@ import kotlin.coroutines.CoroutineContext
 
 object AgentPlatform : CoroutineScope {
 
-    private const val CODE_INITTED = 101
+    const val CODE_REGISTRATION = 101
 
     val messageTransportService: MessageTransportService = MessageTransportServiceImpl(
         BroadcastChannel(Channel.CONFLATED)
@@ -27,9 +27,10 @@ object AgentPlatform : CoroutineScope {
         name: String,
         init: suspend AgentManagementSystem.() -> Unit
     ) = runBlocking(coroutineContext) {
-        agentManagementSystem = AgentManagementSystemImpl(messageTransportService, name, coroutineContext)
-        agentManagementSystem.init()
-        agentManagementSystem.send(Message(name, name, code = CODE_INITTED))
+        agentManagementSystem = AgentManagementSystemImpl(messageTransportService, name, coroutineContext).also {
+            it.init()
+            it.register()
+        }
     }
 
 }

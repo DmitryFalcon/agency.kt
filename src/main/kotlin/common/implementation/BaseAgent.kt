@@ -13,7 +13,7 @@ import kotlin.coroutines.CoroutineContext
 
 abstract class BaseAgent internal constructor(
     override val name: String,
-    private val behaviour: Behaviour,
+    val behaviour: Behaviour,
     override val coroutineContext: CoroutineContext,
     override val capacity: Int = Channel.CONFLATED,
     override val parent: DirectoryFacilitator
@@ -49,7 +49,7 @@ abstract class BaseAgent internal constructor(
     override suspend fun send(element: Message) = agent.send(element)
 
     override val identifier: String
-        get() = "${parent.name}@$name"
+        get() = "${parent.identifier}@$name"
 
     internal class AgentImpl(
         name: String,

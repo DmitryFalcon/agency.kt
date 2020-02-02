@@ -7,27 +7,25 @@ import java.time.Duration
 
 interface DirectoryFacilitator : Agent {
 
-    val children: Map<String, Agent>
-
     suspend fun onPathUnresolved(message: Message)
 
-    fun df(
+    suspend fun df(
         name: String,
         mts: MessageTransportService? = null,
         capicity: Int = Channel.CONFLATED,
         init: suspend DirectoryFacilitator.() -> Unit
     )
 
-    fun agent(agent: Agent)
+    suspend fun agent(agent: Agent)
 
-    fun agent(
+    suspend fun agent(
         name: String = "${System.currentTimeMillis()}",
         capicity: Int = Channel.CONFLATED,
         lifecycle: Duration = DURATION_INFINITE,
         behaviour: Behaviour
     )
 
-    fun agent(
+    suspend fun agent(
         name: String = "${System.currentTimeMillis()}",
         capicity: Int = Channel.CONFLATED,
         lifecycle: Duration = DURATION_INFINITE,
@@ -40,4 +38,6 @@ interface DirectoryFacilitator : Agent {
         }
         agent(name, capicity, lifecycle, behaviour)
     }
+
+    operator fun get(agentId: String): Agent
 }
