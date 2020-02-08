@@ -94,9 +94,6 @@ abstract class BaseDFAgent internal constructor(
 
     private fun Agent.sendMessage(message: Message) {
         val result = offer(message)
-        if (!result) {
-            println("Agent `$identifier` is blocked")
-        }
     }
 
     internal class DFAgentImpl(

@@ -17,17 +17,16 @@ abstract class BaseAgent internal constructor(
     override val coroutineContext: CoroutineContext,
     override val capacity: Int = Channel.CONFLATED,
     override val parent: DirectoryFacilitator
-) : Agent, SendChannel<Message>, Behaviour by behaviour {
+) : Agent, Behaviour by behaviour {
 
     private val agent = actor<Message>(
         context = coroutineContext,
         capacity = capacity
     ) {
-        for (message in channel) with(this@BaseAgent) {
+        for (message in channel) {
             behaviour.onReceive(message, this@BaseAgent, parent)
         }
     }
-
 
     @ExperimentalCoroutinesApi
     override val isClosedForSend: Boolean
